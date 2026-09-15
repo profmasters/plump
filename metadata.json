@@ -1,0 +1,6 @@
+{
+  "name": "Plumb Control OS",
+  "description": "Enterprise commerce feed & bid reconciliation control OS with active inventory guard, spend mitigation, and deterministic audit trail.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
