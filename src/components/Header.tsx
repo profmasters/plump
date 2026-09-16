@@ -1,6 +1,7 @@
 import React from 'react';
 import { MarketCode, OperatingMode } from '../types';
 import { USER_AVATAR_URL } from '../data/mockData';
+import { AuthorizedAppSwitcher } from './common/AuthorizedAppSwitcher';
 
 interface HeaderProps {
   currentMarket: MarketCode | 'ALL';
@@ -88,19 +89,19 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Switch to Super Admin + Operating mode badge, Protected Kill Switch, bell, profile */}
+      {/* Right: Authorized App Switcher + Operating mode badge, Protected Kill Switch, bell, profile */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        {/* Switch to Super Admin Button */}
+        {/* Authorized Application Switcher (Apps menu, role-verified) */}
         {onSwitchToSuperAdmin && (
-          <button
-            type="button"
-            onClick={onSwitchToSuperAdmin}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono font-semibold bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 transition-colors shadow-xs"
-            title="Switch to Plumb Super Admin platform management"
-          >
-            <span className="material-symbols-outlined text-[15px] text-amber-400">admin_panel_settings</span>
-            <span className="hidden sm:inline">Super Admin</span>
-          </button>
+          <AuthorizedAppSwitcher
+            currentApp="customer-dashboard"
+            onSwitchApp={(app) => {
+              if (app === 'platform-admin') {
+                onSwitchToSuperAdmin();
+              }
+            }}
+            variant="header"
+          />
         )}
 
         {/* Operating Mode badge */}
@@ -121,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-amber-500'
                 : 'bg-slate-400'
             }`}
-          ></span>
+          />
           <span>
             Mode: {operatingMode === 'Control (Active)' ? 'Control' : operatingMode}
           </span>
@@ -162,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <span className="material-symbols-outlined text-[18px]">notifications</span>
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full"></span>
+            <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full" />
           )}
         </button>
 
@@ -180,7 +181,5 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
     </header>
-  );
-};
   );
 };

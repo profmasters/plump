@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ViewType, Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
+import { ResponsiveShell } from './components/ResponsiveShell';
+import { MobileShell } from './components/mobile/MobileShell';
+import { SuperAdminShell } from './components/superadmin/SuperAdminShell';
 import { OverviewView } from './components/OverviewView';
 import { ProductDecisionsView } from './components/ProductDecisionsView';
 import { AICopilotView } from './components/AICopilotView';
@@ -28,8 +31,28 @@ import {
   PROPOSED_CHANGES_MOCK,
 } from './data/mockData';
 import { MarketCode, OperatingMode, ProductDecisionItem } from './types';
+import { AuthProvider, useAuth } from './auth/authContext';
+import { PlatformAdminAccessDenied } from './components/common/PlatformAdminAccessDenied';
 
-export default function App() {
+function AppContent() {
+  const { canAccessPlatformAdmin } = useAuth();
+
+  // Application level routing: Customer Operational Dashboard vs Super Admin Platform Ops
+  const [activeApplication, setActiveApplication] = useState<'customer-dashboard' | 'platform-admin'>('customer-dashboard');
+
+  // Viewport detection for mobile interaction model
+  const [isMobile, setIsMobile] = useState<boolean>(
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [currentView, setCurrentView] = useState<ViewType>('overview');
   const [currentMarket, setCurrentMarket] = useState<MarketCode | 'ALL'>('ALL');
   const [operatingMode, setOperatingMode] = useState<OperatingMode>('Control (Active)');
@@ -44,7 +67,7 @@ export default function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
   const [selectedWhyProduct, setSelectedWhyProduct] = useState<ProductDecisionItem | null>(null);
 
-  // Products and selected rows (initial rows 1, 3, 6 selected as in image)
+  // Products and selected rows
   const [products, setProducts] = useState<ProductDecisionItem[]>(PRODUCT_DECISIONS);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(
     new Set(['prod-1', 'prod-3', 'prod-6'])
@@ -138,9 +161,69 @@ export default function App() {
     ? products
     : products.filter((p) => p.market === currentMarket);
 
+  // 1. SUPER ADMIN PLATFORM ROUTE (Hard RBAC Route Guard)
+  if (activeApplication === 'platform-admin') {
+    if (!canAccessPlatformAdmin) {
+      return (
+        <PlatformAdminAccessDenied
+          onReturnToDashboard={() => setActiveApplication('customer-dashboard')}
+        />
+      );
+    }
+    return (
+      <SuperAdminShell
+        onSwitchToCustomerDashboard={() => setActiveApplication('customer-dashboard')}
+      />
+    );
+  }
+
+  // 2. MOBILE INTERACTION MODEL (< 768px)
+  if (isMobile) {
+    return (
+      <>
+        <MobileShell
+          currentView={currentView}
+          onSelectView={setCurrentView}
+          currentMarket={currentMarket}
+          onChangeMarket={setCurrentMarket}
+          operatingMode={operatingMode}
+          onChangeOperatingMode={setOperatingMode}
+          isKillSwitchArmed={isKillSwitchArmed}
+          onToggleKillSwitch={setIsKillSwitchArmed}
+          products={displayedProducts}
+          selectedProductIds={selectedProductIds}
+          onToggleProductSelect={handleToggleProductSelect}
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
+          unreadNotificationsCount={RECENT_INTERVENTIONS.length}
+          onSwitchToPlatformAdmin={() => setActiveApplication('platform-admin')}
+          onOverrideTier={handleOverrideTier}
+        />
+
+        {/* Global Drawers & Modals accessible from Mobile when opened */}
+        <NotificationsDrawer
+          isOpen={isNotificationsOpen}
+          onClose={() => setIsNotificationsOpen(false)}
+          interventions={RECENT_INTERVENTIONS}
+        />
+
+        <SimulatePolicyModal
+          isOpen={isSimulatePolicyOpen}
+          onClose={() => setIsSimulatePolicyOpen(false)}
+        />
+
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          products={products}
+        />
+      </>
+    );
+  }
+
+  // 3. DESKTOP & TABLET EXPERIENCE (>= 768px)
   return (
     <div className="bg-[#F8FAFC] text-slate-800 text-sm antialiased min-h-screen flex flex-col font-sans">
-      {/* 1. DARK GRAPHITE SIDEBAR */}
+      {/* 1A. DESKTOP SIDEBAR (Visible on xl: 1280px+) */}
       <Sidebar
         currentView={currentView}
         onSelectView={(v) => {
@@ -153,8 +236,23 @@ export default function App() {
         tickNumber={tickNumber}
       />
 
+      {/* 1B. TABLET COMPACT ICON RAIL (Visible on md: to xl: 768px - 1279px) */}
+      <ResponsiveShell
+        currentView={currentView}
+        onSelectView={(v) => {
+          if (v === 'why') {
+            setSelectedWhyProduct(products[0]);
+          } else {
+            setCurrentView(v);
+          }
+        }}
+        unreadCount={RECENT_INTERVENTIONS.length}
+        isKillSwitchArmed={isKillSwitchArmed}
+        onOpenKillSwitchModal={() => setIsKillSwitchModalOpen(true)}
+      />
+
       {/* 2. MAIN APPLICATION WORKSPACE */}
-      <div className="pl-64 min-h-screen flex flex-col bg-[#F8FAFC]">
+      <div className="xl:pl-64 md:pl-16 pl-0 min-h-screen flex flex-col bg-[#F8FAFC]">
         {/* Global Header */}
         <Header
           currentMarket={currentMarket}
@@ -166,10 +264,11 @@ export default function App() {
           onSearchChange={(q) => setSearchQuery(q)}
           onOpenNotifications={() => setIsNotificationsOpen(true)}
           unreadCount={RECENT_INTERVENTIONS.length}
+          onSwitchToSuperAdmin={() => setActiveApplication('platform-admin')}
         />
 
         {/* Dynamic View Canvas */}
-        <main className="pt-14 p-6 space-y-5 max-w-7xl w-full mx-auto flex-1">
+        <main className="pt-14 p-4 sm:p-6 space-y-5 max-w-7xl w-full mx-auto flex-1">
           {currentView === 'overview' && (
             <OverviewView
               operatingMode={operatingMode}
@@ -218,12 +317,12 @@ export default function App() {
                   <span className="text-xs text-emerald-600 font-medium">100% unique primary keys across ERPs</span>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-xs text-slate-500 block">Merchant API Push Success</span>
+                  <span className="text-xs text-slate-500 block">Merchant Publication Success</span>
                   <span className="text-xl font-bold font-mono text-slate-900 mt-1 block">99.98%</span>
                   <span className="text-xs text-slate-500">Last sync 3m ago via Google Merchant API · Supplemental data source</span>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <span className="text-xs text-slate-500 block">Feed Attributes Bound</span>
+                  <span className="text-xs text-slate-500 block">Supplemental Attributes Bound</span>
                   <span className="text-xl font-bold font-mono text-slate-900 mt-1 block">custom_label_0..4</span>
                   <span className="text-xs text-slate-500">Tier, Profit Margin, DOC, Lead Time</span>
                 </div>
@@ -337,15 +436,15 @@ export default function App() {
         <footer className="mt-auto border-t border-slate-200/80 bg-white px-6 py-3 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Storefronts: <strong className="font-normal text-slate-700">4 synced</strong>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Supplemental Dispatch: <strong className="font-normal text-slate-700">3m ago</strong>
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
               Telemetry Loop: <strong className="font-normal text-slate-700">15s</strong>
             </span>
           </div>
@@ -396,5 +495,13 @@ export default function App() {
         interventions={RECENT_INTERVENTIONS}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

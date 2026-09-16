@@ -18,6 +18,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
   onOpenKillSwitchModal,
 }) => {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isRailExpanded, setIsRailExpanded] = useState(false);
 
   // High-frequency destinations for mobile bottom navigation:
   // Overview | Decisions | Risks (Data Health) | Copilot | More
@@ -71,69 +72,150 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
     <>
       {/* ========================================================================= */}
       {/* 1. TABLET ICON RAIL (Hidden on Mobile & Desktop, visible on md: to xl:) */}
+      {/* Touch accessible: 64px rail expandable to 240px label drawer via tap     */}
       {/* ========================================================================= */}
-      <aside className="hidden md:flex xl:hidden fixed left-0 top-0 h-full w-16 bg-[#0F172A] border-r border-slate-800/80 z-40 flex-col items-center justify-between py-3">
-        <div className="flex flex-col items-center gap-4 w-full">
-          {/* Logo */}
-          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-slate-900 border border-slate-700/60 shadow-inner">
-            <img src={USER_AVATAR_URL} alt="Plumb Logo" className="w-full h-full object-cover" />
-          </div>
+      {/* Backdrop when rail is expanded on tablet */}
+      {isRailExpanded && (
+        <div
+          className="hidden md:block xl:hidden fixed inset-0 bg-slate-900/40 z-35 backdrop-blur-2xs transition-opacity"
+          onClick={() => setIsRailExpanded(false)}
+        />
+      )}
 
-          <div className="w-8 h-px bg-slate-800 my-1"></div>
+      <aside
+        className={`hidden md:flex xl:hidden fixed left-0 top-0 h-full bg-[#0F172A] border-r border-slate-800/90 z-40 flex-col justify-between py-3 transition-all duration-200 shadow-xl ${
+          isRailExpanded ? 'w-60 px-3 items-start' : 'w-16 px-2 items-center'
+        }`}
+      >
+        <div className="flex flex-col gap-3 w-full">
+          {/* Rail Header with Logo and Touch Expand/Collapse Toggle */}
+          <div className="flex items-center justify-between w-full">
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-slate-900 border border-slate-700/60 shadow-inner shrink-0">
+              <img src={USER_AVATAR_URL} alt="Plumb Logo" className="w-full h-full object-cover" />
+            </div>
 
-          {/* Quick Icons */}
-          <div className="flex flex-col items-center gap-1.5 w-full px-2">
-            {[
-              { id: 'overview' as ViewType, icon: 'dashboard', title: 'Overview' },
-              { id: 'product-decisions' as ViewType, icon: 'checklist', title: 'Decisions' },
-              { id: 'why' as ViewType, icon: 'manage_search', title: 'Why' },
-              { id: 'data-health' as ViewType, icon: 'monitoring', title: 'Data Health' },
-              { id: 'policy-studio' as ViewType, icon: 'tune', title: 'Policies' },
-              { id: 'ai-copilot' as ViewType, icon: 'auto_awesome', title: 'Copilot' },
-              { id: 'automations' as ViewType, icon: 'smart_toy', title: 'Automations' },
-              { id: 'connectors' as ViewType, icon: 'cable', title: 'Connectors' },
-              { id: 'agency-command' as ViewType, icon: 'domain', title: 'Agency Command' },
-            ].map((nav) => (
-              <button
-                key={nav.id}
-                type="button"
-                title={nav.title}
-                onClick={() => onSelectView(nav.id)}
-                className={`w-11 h-11 rounded-lg flex items-center justify-center transition-colors ${
-                  currentView === nav.id
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
-                }`}
-              >
-                <span className="material-symbols-outlined text-[20px]">{nav.icon}</span>
-              </button>
-            ))}
+            {isRailExpanded && (
+              <div className="flex-1 min-w-0 ml-2.5">
+                <div className="text-xs font-bold text-white tracking-tight truncate">Plumb Control OS</div>
+                <div className="text-[10px] text-slate-400 font-mono truncate">Tablet Workspace</div>
+              </div>
+            )}
 
-            {/* Expand Drawer button on Tablet */}
+            {/* Touch Rail Expand / Collapse Button */}
             <button
               type="button"
-              title="All Navigation"
-              onClick={() => setIsMoreMenuOpen(true)}
-              className="w-11 h-11 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/70 transition-colors"
+              onClick={() => setIsRailExpanded(!isRailExpanded)}
+              className="w-8 h-8 rounded-md bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 flex items-center justify-center transition-colors shrink-0"
+              title={isRailExpanded ? 'Collapse Navigation' : 'Expand Navigation (Touch Labels)'}
             >
-              <span className="material-symbols-outlined text-[20px]">menu_open</span>
+              <span className="material-symbols-outlined text-[18px]">
+                {isRailExpanded ? 'chevron_left' : 'chevron_right'}
+              </span>
+            </button>
+          </div>
+
+          <div className="w-full h-px bg-slate-800 my-0.5" />
+
+          {/* Quick Nav Items with direct visible labels when expanded */}
+          <div className="flex flex-col gap-1 w-full">
+            {[
+              { id: 'overview' as ViewType, icon: 'dashboard', title: 'Overview', badge: undefined },
+              { id: 'product-decisions' as ViewType, icon: 'checklist', title: 'Decisions', badge: '36' },
+              { id: 'why' as ViewType, icon: 'manage_search', title: 'Why (Detail)', badge: undefined },
+              { id: 'data-health' as ViewType, icon: 'monitoring', title: 'Data Health', badge: '99%' },
+              { id: 'policy-studio' as ViewType, icon: 'tune', title: 'Policies', badge: undefined },
+              { id: 'ai-copilot' as ViewType, icon: 'auto_awesome', title: 'Copilot', badge: undefined },
+              { id: 'automations' as ViewType, icon: 'smart_toy', title: 'Automations', badge: '6' },
+              { id: 'connectors' as ViewType, icon: 'cable', title: 'Connectors', badge: '4' },
+              { id: 'agency-command' as ViewType, icon: 'domain', title: 'Agency Command', badge: undefined },
+            ].map((nav) => {
+              const isActive = currentView === nav.id;
+              return (
+                <button
+                  key={nav.id}
+                  type="button"
+                  title={nav.title}
+                  onClick={() => {
+                    onSelectView(nav.id);
+                    if (isRailExpanded) setIsRailExpanded(false);
+                  }}
+                  className={`rounded-lg flex items-center transition-all ${
+                    isRailExpanded
+                      ? 'w-full px-2.5 py-2 justify-between gap-2.5'
+                      : 'w-11 h-11 justify-center'
+                  } ${
+                    isActive
+                      ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/70'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="material-symbols-outlined text-[20px] shrink-0">{nav.icon}</span>
+                    {isRailExpanded && (
+                      <span className="text-xs truncate">{nav.title}</span>
+                    )}
+                  </div>
+                  {isRailExpanded && nav.badge && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-800 text-slate-300">
+                      {nav.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Open Full Hierarchy Menu */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMoreMenuOpen(true);
+                setIsRailExpanded(false);
+              }}
+              className={`rounded-lg flex items-center transition-colors text-slate-400 hover:text-white hover:bg-slate-800/70 ${
+                isRailExpanded
+                  ? 'w-full px-2.5 py-2 justify-between gap-2.5 mt-1 border-t border-slate-800/80 pt-2'
+                  : 'w-11 h-11 justify-center'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="material-symbols-outlined text-[20px] shrink-0">menu_open</span>
+                {isRailExpanded && <span className="text-xs">All 14 Modules</span>}
+              </div>
+              {isRailExpanded && (
+                <span className="text-[10px] text-slate-500 font-mono">More →</span>
+              )}
             </button>
           </div>
         </div>
 
-        {/* Bottom avatar / settings */}
-        <div className="flex flex-col items-center gap-2">
+        {/* Bottom Section: Settings & Telemetry */}
+        <div className={`flex flex-col gap-2 w-full ${isRailExpanded ? 'px-1' : 'items-center'}`}>
           <button
             type="button"
             title="Settings"
-            onClick={() => onSelectView('settings')}
-            className={`w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ${
-              currentView === 'settings' ? 'bg-blue-600 text-white' : ''
-            }`}
+            onClick={() => {
+              onSelectView('settings');
+              if (isRailExpanded) setIsRailExpanded(false);
+            }}
+            className={`rounded-lg flex items-center transition-colors text-slate-400 hover:text-white hover:bg-slate-800 ${
+              isRailExpanded ? 'w-full px-2.5 py-2 gap-2.5' : 'w-10 h-10 justify-center'
+            } ${currentView === 'settings' ? 'bg-blue-600 text-white' : ''}`}
           >
-            <span className="material-symbols-outlined text-[19px]">settings</span>
+            <span className="material-symbols-outlined text-[19px] shrink-0">settings</span>
+            {isRailExpanded && <span className="text-xs">Settings &amp; Audit</span>}
           </button>
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Telemetry Live"></div>
+
+          <div className="flex items-center justify-between w-full px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Telemetry Live" />
+              {isRailExpanded && (
+                <span className="text-[10px] font-mono text-emerald-400">15s Live Loop</span>
+              )}
+            </div>
+            {isRailExpanded && (
+              <span className="text-[10px] text-slate-500 font-mono">TLS 1.3</span>
+            )}
+          </div>
         </div>
       </aside>
 

@@ -33,6 +33,19 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
   const [spendOver1000, setSpendOver1000] = useState<boolean>(true);
   const [pageSize, setPageSize] = useState<number>(50);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(new Set());
+
+  const toggleProductExpand = (id: string) => {
+    setExpandedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   // Filtered products
   const filteredProducts = useMemo(() => {
@@ -330,7 +343,8 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
 
       {/* Main Product Decisions Table Card */}
       <div className="bg-white border border-slate-200 rounded-lg shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop & Tablet Table (Hidden on Mobile) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-medium text-[11px] tracking-tight select-none">
@@ -348,12 +362,12 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
                 <th className="px-4 py-3 text-center">Market</th>
                 <th className="px-4 py-3 text-center">DOC</th>
                 <th className="px-4 py-3 text-right">ATS Units</th>
-                <th className="px-4 py-3 text-right">Contribution Margin</th>
+                <th className="px-4 py-3 text-right hidden xl:table-cell">Contribution Margin</th>
                 <th className="px-4 py-3 text-right">Ad Spend</th>
                 <th className="px-4 py-3 text-center">Confidence</th>
                 <th className="px-4 py-3 text-center">Current Tier</th>
                 <th className="px-4 py-3 text-center">Proposed Tier</th>
-                <th className="px-4 py-3 text-right sticky right-0 bg-slate-50">Why</th>
+                <th className="px-4 py-3 text-right sticky right-0 bg-slate-50">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -374,12 +388,12 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
                   const isMarginNegative = p.contributionMarginEur < 0;
 
                   return (
-                    <tr
-                      key={p.id}
-                      className={`hover:bg-slate-50/80 transition-colors group ${
-                        isChecked ? 'bg-blue-50/20' : ''
-                      }`}
-                    >
+                    <React.Fragment key={p.id}>
+                      <tr
+                        className={`hover:bg-slate-50/80 transition-colors group ${
+                          isChecked ? 'bg-blue-50/20' : ''
+                        }`}
+                      >
                       {/* Checkbox */}
                       <td className="px-4 py-3 text-center">
                         <input
@@ -458,8 +472,8 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Contribution Margin */}
-                      <td className="px-4 py-3 text-right">
+                      {/* Contribution Margin (Desktop only) */}
+                      <td className="px-4 py-3 text-right hidden xl:table-cell">
                         <div className={`font-medium ${isMarginNegative ? 'text-rose-700' : 'text-emerald-700'}`}>
                           {isMarginNegative ? `-€${Math.abs(p.contributionMarginEur).toFixed(2)}` : `+€${p.contributionMarginEur.toFixed(2)}`}
                         </div>
@@ -525,9 +539,21 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
                         </div>
                       </td>
 
-                      {/* Why */}
+                      {/* Actions */}
                       <td className="px-4 py-3 text-right sticky right-0 bg-white group-hover:bg-slate-50/80 transition-colors">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Tablet expander toggle */}
+                          <button
+                            type="button"
+                            onClick={() => toggleProductExpand(p.id)}
+                            className="xl:hidden p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                            title={expandedProductIds.has(p.id) ? 'Collapse row details' : 'Expand row details'}
+                          >
+                            <span className="material-symbols-outlined text-[17px]">
+                              {expandedProductIds.has(p.id) ? 'expand_less' : 'expand_more'}
+                            </span>
+                          </button>
+
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono border hidden xl:inline-block ${
                             p.reasonCode.includes('STOCKOUT') || p.reasonCode.includes('MARGIN')
                               ? 'bg-rose-50 text-rose-700 border-rose-200'
@@ -549,11 +575,192 @@ export const ProductDecisionsView: React.FC<ProductDecisionsViewProps> = ({
                         </div>
                       </td>
                     </tr>
+
+                    {/* Tablet Expandable Sub-Row */}
+                    {expandedProductIds.has(p.id) && (
+                      <tr key={`exp-${p.id}`} className="bg-slate-50/90 text-xs border-b border-slate-200/80 xl:hidden">
+                        <td colSpan={11} className="px-6 py-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-4 text-slate-700">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-900">Contribution Margin:</span>
+                              <span className={`font-mono font-medium ${isMarginNegative ? 'text-rose-600' : 'text-emerald-700'}`}>
+                                {isMarginNegative ? `-€${Math.abs(p.contributionMarginEur).toFixed(2)}` : `+€${p.contributionMarginEur.toFixed(2)}`} ({p.marginPercent > 0 ? `+${p.marginPercent.toFixed(1)}%` : `${p.marginPercent.toFixed(1)}%`})
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-900">Reason:</span>
+                              <span className="font-mono text-rose-700 font-semibold">{p.reasonCode}</span>
+                            </div>
+                            <div className="text-slate-500 flex-1 min-w-[200px] truncate">
+                              {p.reasonDescription}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Operational Cards (Visible on screens < 768px) */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {filteredProducts.length === 0 ? (
+            <div className="p-8 text-center text-slate-400 text-xs">
+              No products matched current filter criteria.{' '}
+              <button onClick={resetFilters} className="text-blue-600 underline font-medium">
+                Reset filters
+              </button>
+            </div>
+          ) : (
+            filteredProducts.map((p) => {
+              const isChecked = selectedProductIds.has(p.id);
+              const isDocCritical = p.doc < 2.0;
+              const isDocWarning = p.doc >= 2.0 && p.doc <= 5.0;
+              const isMarginNegative = p.contributionMarginEur < 0;
+              const isExpanded = expandedProductIds.has(p.id);
+
+              return (
+                <div
+                  key={`mobile-${p.id}`}
+                  className={`p-4 transition-colors space-y-3 ${
+                    isChecked ? 'bg-blue-50/20' : 'bg-white'
+                  }`}
+                >
+                  {/* Card Top: Checkbox, Product Image, Name, SKU */}
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => onToggleProductSelect(p.id)}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+                    />
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-50"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 mb-0.5">
+                        <span className="font-semibold text-slate-800">SKU {p.sku}</span>
+                        <span>·</span>
+                        <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-medium font-mono">{p.market}</span>
+                      </div>
+                      <h4
+                        onClick={() => onOpenWhyDrawer(p)}
+                        className="text-xs font-semibold text-slate-900 hover:text-blue-600 transition-colors line-clamp-1 cursor-pointer"
+                      >
+                        {p.name}
+                      </h4>
+                      <div className="text-[11px] text-slate-400 truncate">
+                        {p.brand} • {p.category}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Canonical 4-Metric Grid */}
+                  <div className="grid grid-cols-4 gap-2 bg-slate-50/90 p-2.5 rounded-lg border border-slate-100 text-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">DOC</span>
+                      <span className={`text-xs font-bold font-mono ${
+                        isDocCritical ? 'text-rose-600' : isDocWarning ? 'text-amber-600' : 'text-emerald-600'
+                      }`}>
+                        {p.doc.toFixed(1)}d
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">ATS</span>
+                      <span className={`text-xs font-bold font-mono ${p.atsUnits === 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                        {p.atsUnits}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Ad Spend</span>
+                      <span className="text-xs font-bold font-mono text-slate-800">
+                        €{p.adSpendEur >= 1000 ? `${(p.adSpendEur / 1000).toFixed(1)}k` : p.adSpendEur}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block font-medium">Confidence</span>
+                      <span className="text-xs font-bold font-mono text-blue-700">
+                        {p.confidence}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Operational Tier Mutation Banner */}
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Tier:</span>
+                      <span className="px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-slate-200 text-slate-700">
+                        {p.currentTier}
+                      </span>
+                      <span className="material-symbols-outlined text-[14px] text-slate-400">arrow_forward</span>
+                      <span className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold border ${
+                        p.proposedTier === 'HOLD'
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : p.proposedTier === 'GUARD_HIGH'
+                          ? 'bg-orange-100 text-orange-800 border-orange-300'
+                          : p.proposedTier === 'GUARD_MEDIUM'
+                          ? 'bg-amber-100 text-amber-800 border-amber-300'
+                          : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      }`}>
+                        {p.proposedTier}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onOpenWhyDrawer(p)}
+                      className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <span>Why?</span>
+                      <span className="material-symbols-outlined text-[13px]">arrow_forward</span>
+                    </button>
+                  </div>
+
+                  {/* Expandable Details Accordion */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleProductExpand(p.id)}
+                      className="w-full flex items-center justify-between text-[11px] text-slate-500 hover:text-slate-800 py-1 transition-colors"
+                    >
+                      <span>{isExpanded ? 'Hide Source Lineage' : 'View Source Facts & Margins'}</span>
+                      <span className="material-symbols-outlined text-[15px]">
+                        {isExpanded ? 'expand_less' : 'expand_more'}
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="mt-2 p-2.5 rounded bg-slate-50 border border-slate-200 text-[11px] space-y-1.5 animate-in fade-in duration-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Contribution Margin:</span>
+                          <span className={`font-mono font-semibold ${isMarginNegative ? 'text-rose-600' : 'text-slate-800'}`}>
+                            €{p.contributionMarginEur.toFixed(2)} ({p.marginPercent}% gross)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">GTIN:</span>
+                          <span className="font-mono text-slate-700">{p.gtin}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Reason Code:</span>
+                          <span className="font-mono text-rose-700 font-semibold">{p.reasonCode}</span>
+                        </div>
+                        <p className="text-slate-600 text-[11px] pt-1 border-t border-slate-200/60 leading-relaxed">
+                          {p.reasonDescription}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Table Footer Pagination Bar */}

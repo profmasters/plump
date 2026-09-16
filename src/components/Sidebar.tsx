@@ -26,7 +26,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onSelectView, tickNumber }) => {
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-[#0F172A] border-r border-slate-800/80 z-50 flex flex-col justify-between overflow-y-auto selection:bg-blue-600 selection:text-white">
+    <aside className="hidden xl:flex fixed left-0 top-0 h-full w-64 bg-[#0F172A] border-r border-slate-800/80 z-50 flex-col justify-between overflow-y-auto selection:bg-blue-600 selection:text-white">
       <div className="flex flex-col">
         {/* App Header / Logo */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-slate-800/80">

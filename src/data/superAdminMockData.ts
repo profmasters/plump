@@ -726,7 +726,7 @@ export const BILLING_OPERATIONS_DATA: BillingTenantRow[] = [
     stripeCustomerId: 'cus_Bnlx_3341E',
     planDisplayName: 'Enterprise Control',
     planVersion: 'ENT-CONTROL-v7',
-    billingState: 'Enterprise Invoiced',
+    billingState: 'Manual Enterprise Wire',
     invoiceState: 'Paid (Current)',
     paymentMethodMasked: 'ACH / Wire Transfer (Direct ERP)',
     configuredGracePolicy: '14-Day Enterprise Grace',

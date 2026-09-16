@@ -13,6 +13,7 @@ export const SuperAdminResponsiveNav: React.FC<SuperAdminResponsiveNavProps> = (
   openIncidentsCount,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isRailExpanded, setIsRailExpanded] = React.useState(false);
 
   // High frequency destinations for mobile platform operations:
   // Overview | Tenants | Incidents | AI Fleet | Menu
@@ -54,35 +55,87 @@ export const SuperAdminResponsiveNav: React.FC<SuperAdminResponsiveNavProps> = (
 
   return (
     <>
-      {/* Tablet Icon Rail (md: to xl:) */}
-      <aside className="hidden md:flex xl:hidden fixed left-0 top-14 bottom-0 w-16 bg-[#080C14] border-r border-slate-800 z-40 flex-col items-center justify-between py-3">
-        <div className="flex flex-col items-center gap-2 w-full px-2">
-          {[
-            { id: 'platform-overview' as SuperAdminViewType, icon: 'speed', label: 'Overview' },
-            { id: 'tenants' as SuperAdminViewType, icon: 'domain', label: 'Tenants' },
-            { id: 'tenant-operations' as SuperAdminViewType, icon: 'manage_accounts', label: 'Ops' },
-            { id: 'connector-fleet' as SuperAdminViewType, icon: 'hub', label: 'Connectors' },
-            { id: 'merchant-publication-ops' as SuperAdminViewType, icon: 'publish', label: 'Merchant' },
-            { id: 'ai-platform-ops' as SuperAdminViewType, icon: 'memory', label: 'AI Fleet' },
-            { id: 'plan-builder' as SuperAdminViewType, icon: 'receipt_long', label: 'Plans' },
-            { id: 'incident-center' as SuperAdminViewType, icon: 'emergency', label: 'Incidents' },
-            { id: 'audit-security' as SuperAdminViewType, icon: 'security', label: 'Audit' },
-          ].map((item) => (
+      {/* Tablet Icon Rail (md: to xl:) with Touch Expand Toggle */}
+      {isRailExpanded && (
+        <div
+          className="hidden md:block xl:hidden fixed inset-0 bg-black/40 z-35 backdrop-blur-2xs transition-opacity"
+          onClick={() => setIsRailExpanded(false)}
+        />
+      )}
+
+      <aside
+        className={`hidden md:flex xl:hidden fixed left-0 top-14 bottom-0 bg-[#080C14] border-r border-slate-800 z-40 flex-col justify-between py-3 transition-all duration-200 shadow-xl ${
+          isRailExpanded ? 'w-60 px-3 items-start' : 'w-16 px-2 items-center'
+        }`}
+      >
+        <div className="flex flex-col gap-2 w-full">
+          {/* Header with Touch Expand / Collapse Button */}
+          <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800/80">
+            {isRailExpanded ? (
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span className="font-mono text-xs font-bold text-amber-300 truncate">PLATFORM OPS</span>
+              </div>
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-amber-400 mx-auto" />
+            )}
+
             <button
-              key={item.id}
               type="button"
-              title={item.label}
-              onClick={() => onSelectView(item.id)}
-              className={`w-11 h-11 rounded-lg flex items-center justify-center transition-colors ${
-                currentView === item.id
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
+              onClick={() => setIsRailExpanded(!isRailExpanded)}
+              className="w-7 h-7 rounded bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors"
+              title={isRailExpanded ? 'Collapse Navigation' : 'Expand Labels (Touch)'}
             >
-              <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+              <span className="material-symbols-outlined text-[16px]">
+                {isRailExpanded ? 'chevron_left' : 'chevron_right'}
+              </span>
             </button>
-          ))}
+          </div>
+
+          <div className="flex flex-col gap-1 w-full mt-1">
+            {[
+              { id: 'platform-overview' as SuperAdminViewType, icon: 'speed', label: 'Overview' },
+              { id: 'tenants' as SuperAdminViewType, icon: 'domain', label: 'Tenants' },
+              { id: 'tenant-operations' as SuperAdminViewType, icon: 'manage_accounts', label: 'Tenant Ops' },
+              { id: 'connector-fleet' as SuperAdminViewType, icon: 'hub', label: 'Connectors' },
+              { id: 'merchant-publication-ops' as SuperAdminViewType, icon: 'publish', label: 'Merchant API' },
+              { id: 'ai-platform-ops' as SuperAdminViewType, icon: 'memory', label: 'AI Platform' },
+              { id: 'plan-builder' as SuperAdminViewType, icon: 'receipt_long', label: 'Plan Builder' },
+              { id: 'incident-center' as SuperAdminViewType, icon: 'emergency', label: 'Incidents' },
+              { id: 'audit-security' as SuperAdminViewType, icon: 'security', label: 'Audit Ledger' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                title={item.label}
+                onClick={() => {
+                  onSelectView(item.id);
+                  if (isRailExpanded) setIsRailExpanded(false);
+                }}
+                className={`rounded-lg flex items-center transition-colors ${
+                  isRailExpanded
+                    ? 'w-full px-2.5 py-2 justify-start gap-2.5'
+                    : 'w-11 h-11 justify-center'
+                } ${
+                  currentView === item.id
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[20px] shrink-0">{item.icon}</span>
+                {isRailExpanded && (
+                  <span className="text-xs truncate">{item.label}</span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {isRailExpanded && (
+          <div className="text-[10px] font-mono text-slate-500 px-2 py-1">
+            Fleet: 48 Tenants Active
+          </div>
+        )}
       </aside>
 
       {/* Mobile Bottom Navigation (< md:) */}

@@ -1,24 +1,25 @@
-import React, { useState } from 'react';
-import { SuperAdminHeader } from './components/superadmin/SuperAdminHeader';
-import { SuperAdminSidebar } from './components/superadmin/SuperAdminSidebar';
-import { SuperAdminResponsiveNav } from './components/superadmin/SuperAdminResponsiveNav';
-import { PlatformOverviewScreen } from './components/superadmin/PlatformOverviewScreen';
-import { TenantsScreen } from './components/superadmin/TenantsScreen';
-import { TenantOperationsScreen } from './components/superadmin/TenantOperationsScreen';
-import { PlanBuilderScreen } from './components/superadmin/PlanBuilderScreen';
-import { ConnectorFleetScreen } from './components/superadmin/ConnectorFleetScreen';
-import { MerchantPublicationOpsScreen } from './components/superadmin/MerchantPublicationOpsScreen';
-import { AIPlatformOpsScreen } from './components/superadmin/AIPlatformOpsScreen';
-import { BillingOpsScreen } from './components/superadmin/BillingOpsScreen';
-import { IncidentCenterScreen } from './components/superadmin/IncidentCenterScreen';
-import { AuditSecurityScreen } from './components/superadmin/AuditSecurityScreen';
-import { SupportSessionModal } from './components/superadmin/SupportSessionModal';
-import { GlobalKillSwitchModal } from './components/superadmin/GlobalKillSwitchModal';
+import React, { useState, useEffect } from 'react';
+import { SuperAdminHeader } from './SuperAdminHeader';
+import { SuperAdminSidebar } from './SuperAdminSidebar';
+import { SuperAdminResponsiveNav } from './SuperAdminResponsiveNav';
+import { MobileSuperAdmin } from './MobileSuperAdmin';
+import { PlatformOverviewScreen } from './PlatformOverviewScreen';
+import { TenantsScreen } from './TenantsScreen';
+import { TenantOperationsScreen } from './TenantOperationsScreen';
+import { PlanBuilderScreen } from './PlanBuilderScreen';
+import { ConnectorFleetScreen } from './ConnectorFleetScreen';
+import { MerchantPublicationOpsScreen } from './MerchantPublicationOpsScreen';
+import { AIPlatformOpsScreen } from './AIPlatformOpsScreen';
+import { BillingOpsScreen } from './BillingOpsScreen';
+import { IncidentCenterScreen } from './IncidentCenterScreen';
+import { AuditSecurityScreen } from './AuditSecurityScreen';
+import { SupportSessionModal } from './SupportSessionModal';
+import { GlobalKillSwitchModal } from './GlobalKillSwitchModal';
 import {
   SuperAdminViewType,
   PlatformTenantItem,
   PLATFORM_INCIDENTS,
-} from './data/superAdminMockData';
+} from '../../data/superAdminMockData';
 
 interface SuperAdminShellProps {
   onSwitchToCustomerDashboard: () => void;
@@ -28,6 +29,19 @@ export const SuperAdminShell: React.FC<SuperAdminShellProps> = ({ onSwitchToCust
   const [currentView, setCurrentView] = useState<SuperAdminViewType>('platform-overview');
   const [selectedTenant, setSelectedTenant] = useState<PlatformTenantItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Viewport tracking for mobile-specific interaction model
+  const [isMobile, setIsMobile] = useState<boolean>(
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Super admin modals
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
@@ -45,14 +59,33 @@ export const SuperAdminShell: React.FC<SuperAdminShellProps> = ({ onSwitchToCust
 
   const handleConfirmSupportSession = (ticketId: string, reason: string) => {
     setSessionActiveToast(
-      `Support session initiated for ${supportModalTenant?.name} (Ticket: ${ticketId}). Session recorded with SHA-256 integrity.`
+      `Support session initiated for ${supportModalTenant?.name} (Ticket: ${ticketId}). Session recorded with cryptographic integrity.`
     );
     setTimeout(() => setSessionActiveToast(null), 4000);
   };
 
+  // If mobile viewport, render dedicated Mobile Super Admin
+  if (isMobile) {
+    return (
+      <>
+        <MobileSuperAdmin
+          onSwitchToCustomerDashboard={onSwitchToCustomerDashboard}
+          onOpenGlobalKillSwitch={() => setIsGlobalKillSwitchOpen(true)}
+          isGlobalKillSwitchArmed={isGlobalKillSwitchArmed}
+        />
+        <GlobalKillSwitchModal
+          isOpen={isGlobalKillSwitchOpen}
+          onClose={() => setIsGlobalKillSwitchOpen(false)}
+          isArmed={isGlobalKillSwitchArmed}
+          onToggleArm={setIsGlobalKillSwitchArmed}
+        />
+      </>
+    );
+  }
+
   return (
-    <div className="bg-[#080C14] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
-      {/* 1. TOP HEADER (Platform Admin) */}
+    <div className="bg-[#0F172A] text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+      {/* 1. TOP HEADER (Platform Admin Enterprise Header) */}
       <SuperAdminHeader
         currentView={currentView}
         onSelectView={setCurrentView}
@@ -70,22 +103,40 @@ export const SuperAdminShell: React.FC<SuperAdminShellProps> = ({ onSwitchToCust
         openIncidentsCount={activeIncidentsCount}
       />
 
-      {/* 3. RESPONSIVE NAVIGATION (Tablet rail md: to xl:, Mobile bottom bar < md:) */}
+      {/* 3. RESPONSIVE NAVIGATION (Tablet rail md: to xl:) */}
       <SuperAdminResponsiveNav
         currentView={currentView}
         onSelectView={setCurrentView}
         openIncidentsCount={activeIncidentsCount}
       />
 
-      {/* 4. MAIN PLATFORM CONTENT AREA */}
-      <div className="xl:pl-64 md:pl-16 pl-0 min-h-screen flex flex-col bg-[#080C14] pb-16 md:pb-0">
-        <main className="pt-14 p-4 sm:p-6 space-y-6 max-w-7xl w-full mx-auto flex-1">
+      {/* 4. MAIN PLATFORM CONTENT AREA (Standard Plumb light/slate enterprise surfaces) */}
+      <div className="xl:pl-64 md:pl-16 pl-0 min-h-screen flex flex-col bg-[#F8FAFC]">
+        <main className="pt-14 p-6 space-y-6 max-w-7xl w-full mx-auto flex-1">
           {sessionActiveToast && (
-            <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-lg text-xs font-mono text-emerald-300 flex items-center justify-between animate-in fade-in duration-150">
-              <span>✓ {sessionActiveToast}</span>
-              <span className="text-[11px] text-emerald-400">Time-bounded (60m)</span>
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs font-mono text-emerald-800 flex items-center justify-between animate-in fade-in duration-150">
+              <span className="font-semibold">✓ {sessionActiveToast}</span>
+              <span className="text-[11px] text-emerald-600">Time-bounded (60m)</span>
             </div>
           )}
+
+          {/* Scope & Mode Header Banner */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="px-2.5 py-1 rounded-md bg-slate-900 text-amber-300 font-mono text-xs font-bold">
+                PLATFORM ADMIN
+              </div>
+              <span className="text-slate-300">|</span>
+              <div className="text-xs text-slate-600 font-medium">
+                Global Fleet Scope: <strong className="font-semibold text-slate-900">32 Active Tenants</strong>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Fleet Telemetry Sync: Nominal</span>
+            </div>
+          </div>
 
           {currentView === 'platform-overview' && (
             <PlatformOverviewScreen onNavigateTo={setCurrentView} />
@@ -136,19 +187,19 @@ export const SuperAdminShell: React.FC<SuperAdminShellProps> = ({ onSwitchToCust
         </main>
 
         {/* Platform Footer */}
-        <footer className="mt-auto border-t border-slate-800/80 bg-[#080C14] px-6 py-3 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-3">
+        <footer className="mt-auto border-t border-slate-200/80 bg-white px-6 py-3 text-xs text-slate-500 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4 font-mono text-[11px]">
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Fleet: 48 Tenants Provisioned
+            <span className="flex items-center gap-1.5 text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Fleet: 32 Tenants Provisioned
             </span>
-            <span className="flex items-center gap-1.5 text-slate-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              Global Ingestion: Nominal
+            <span className="flex items-center gap-1.5 text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Google Merchant API: Nominal
             </span>
           </div>
-          <div className="text-[11px] font-mono text-slate-500">
-            Plumb Super Admin · Platform Node: eu-central-01 · Session SHA: b881...22a4
+          <div className="text-[11px] font-mono text-slate-400">
+            Plumb Super Admin · Platform Node: eu-central-01 · Session ID: b881...22a4
           </div>
         </footer>
       </div>
